@@ -1,6 +1,8 @@
 import streamlit as st
 from streamlit_agraph import Node, Edge, Config, agraph
 import json
+import pandas as pd
+import numpy as np
 
 # Inicializa st.session_state si aún no se ha hecho
 if "nodes" not in st.session_state:
@@ -56,12 +58,28 @@ elif option == 'Eliminar':
         node_id = st.number_input('ID del nodo a eliminar', value=1, step=1)
         submit_button = st.form_submit_button(label='Eliminar nodo')
 
+    # Elimina el nodo cuando se presiona el botón
     if submit_button:
         st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
-        st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.target != node_id]
+        st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
-# Configuración del grafo
-config = Config(width=500, height=500, directed=True)
+# Agrega un menú desplegable en la barra lateral para seleccionar la vista
+view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
 
-# Visualiza el grafo
-agraph(st.session_state["nodes"], st.session_state["edges"], config)
+if view_option == 'Grafo':
+    # Configuración del grafo
+    config = Config(width=1000, height=600, directed=True)
+
+    # Visualiza el grafo
+    agraph(st.session_state["nodes"], st.session_state["edges"], config)
+
+elif view_option == 'Matriz':
+    # Crea una matriz de adyacencia
+    node_ids = [node.id for node in st.session_state["nodes"]]
+    adjacency_matrix = pd.DataFrame(np.zeros((len(node_ids), len(node_ids))), index=node_ids, columns=node_ids)
+
+    for edge in st.session_state["edges"]:
+        adjacency_matrix.loc[edge.source, edge.to] = 1
+
+    # Muestra la matriz de adyacencia
+    st.write(adjacency_matrix)
