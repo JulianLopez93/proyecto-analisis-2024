@@ -3,12 +3,17 @@ from streamlit_agraph import Node, Edge, Config, agraph
 import json
 import pandas as pd
 import numpy as np
+import copy
 
 # Inicializa st.session_state si aún no se ha hecho
 if "nodes" not in st.session_state:
     st.session_state["nodes"] = []
 if "edges" not in st.session_state:
     st.session_state["edges"] = []
+if "previous_nodes" not in st.session_state:
+    st.session_state["previous_nodes"] = []
+if "previous_edges" not in st.session_state:
+    st.session_state["previous_edges"] = []
 
 # Agrega un selector de archivos en la barra lateral
 uploaded_file = st.sidebar.file_uploader("Elige un archivo JSON", type="json")
@@ -38,6 +43,10 @@ if option == 'Agregar':
 
             # Agrega la arista cuando se presiona el botón
         if submit_button:
+            # Guarda el estado actual antes de hacer cambios
+            st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+            st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
             node = Node(id=node_id, label=node_label, size=node_radius)
             st.session_state["nodes"].append(node)
 elif option == 'Editar':
@@ -48,6 +57,10 @@ elif option == 'Editar':
         submit_button = st.form_submit_button(label='Editar nodo')
 
     if submit_button:
+        # Guarda el estado actual antes de hacer cambios
+        st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+        st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
         for node in st.session_state["nodes"]:
             if node.id == node_id:
                 node.label = new_node_label
@@ -60,6 +73,10 @@ elif option == 'Eliminar':
 
     # Elimina el nodo cuando se presiona el botón
     if submit_button:
+        # Guarda el estado actual antes de hacer cambios
+        st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+        st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
         st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
         st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
@@ -74,6 +91,10 @@ with st.sidebar:
             submit_button = st.form_submit_button(label='Ejecutar')
 
             if submit_button:
+            # Guarda el estado actual antes de hacer cambios
+                st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+                st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
                 edge = Edge(source=source_id, target=target_id, label=edge_label)
                 st.session_state["edges"].append(edge)
 
@@ -94,6 +115,10 @@ with st.sidebar:
 
                 # Edita la arista cuando se presiona el botón
                 if submit_edit_button:
+                    # Guarda el estado actual antes de hacer cambios
+                    st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+                    st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
                     edge_to_edit.label = edge_label_edit
             else:
                 st.warning('La arista no existe. Introduce IDs válidos para editar.')
@@ -106,12 +131,21 @@ with st.sidebar:
 
             # Elimina la arista cuando se presiona el botón
             if submit_remove_button:
+                # Guarda el estado actual antes de hacer cambios
+                st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
+                st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
+
                 edges_to_remove = []
                 for edge in st.session_state["edges"]:
                     if edge.source == source_id_to_remove and edge.to == target_id_to_remove and edge.label == edge_label_to_remove:
                         edges_to_remove.append(edge)
         
                 st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge not in edges_to_remove]
+
+# Agrega un botón para deshacer el último cambio
+if st.sidebar.button('Deshacer acción anterior'):
+    st.session_state["nodes"] = st.session_state["previous_nodes"]
+    st.session_state["edges"] = st.session_state["previous_edges"]
 
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
