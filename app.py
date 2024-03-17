@@ -63,7 +63,7 @@ elif option == 'Eliminar':
         st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
         st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
-operation = st.sidebar.selectbox('Arista', ['Agregar', 'Editar', 'Eliminar'])
+operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar'])
 
 with st.sidebar:
     with st.form(key='edge_form'):
@@ -77,26 +77,8 @@ with st.sidebar:
                 edge = Edge(source=source_id, target=target_id, label=edge_label)
                 st.session_state["edges"].append(edge)
 
-        elif operation == 'Editar':
-            source_id_to_edit = st.number_input('ID del nodo de origen', min_value=0, step=1)
-            target_id_to_edit = st.number_input('ID del nodo de destino', min_value=0, step=1)
-            edge_label = st.text_input('Etiqueta de la arista')
-            edge_to_edit = None
+  
 
-            for edge in st.session_state["edges"]:
-                if (edge.source, edge.to) == (source_id_to_edit, target_id_to_edit):
-                    edge_to_edit = edge
-                    break
-
-            if edge_to_edit:
-                edge_label_edit = st.text_input('Nueva etiqueta de la arista', value=edge_to_edit.label)
-                submit_edit_button = st.form_submit_button(label='Editar arista')
-
-                # Edita la arista cuando se presiona el botón
-                if submit_edit_button:
-                    edge_to_edit.label = edge_label_edit
-            else:
-                st.warning('La arista no existe. Introduce IDs válidos para editar.')
 
         elif operation == 'Eliminar':
             source_id_to_remove = st.number_input('ID del nodo de origen', min_value=0, step=1)
@@ -112,6 +94,8 @@ with st.sidebar:
                         edges_to_remove.append(edge)
         
                 st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge not in edges_to_remove]
+                config = Config(width=1000, height=600, directed=True)
+                agraph(st.session_state["nodes"], st.session_state["edges"], config)
 
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
