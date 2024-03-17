@@ -161,42 +161,6 @@ if st.sidebar.button('Mostrar/Ocultar JSON'):
 if st.session_state["show_json"]:
     st.text(st.session_state["json_data"])
 
-# Agrega un botón para deshacer el último cambio
-if st.sidebar.button('Deshacer acción anterior'):
-    st.session_state["nodes"] = st.session_state["previous_nodes"]
-    st.session_state["edges"] = st.session_state["previous_edges"]
-
-# Agrega un botón para guardar el grafo en formato JSON
-if st.sidebar.button('Guardar'):
-    graph_data = {
-        "graph": [
-            {
-                "data": [
-                    {
-                        "id": node.id,
-                        "label": node.label,
-                        "radius": node.size,
-                        "linkedTo": [
-                            {
-                                "nodeId": edge.to,
-                                "weight": edge.label
-                            } for edge in st.session_state["edges"] if edge.source == node.id
-                        ]
-                    } for node in st.session_state["nodes"]
-                ]
-            }
-        ]
-    }
-    st.text(json.dumps(graph_data, indent=4))
-
-# Agrega un botón para mostrar u ocultar el JSON
-if st.sidebar.button('Mostrar/Ocultar JSON'):
-    st.session_state["show_json"] = not st.session_state["show_json"]
-
-# Muestra el JSON si el usuario ha seleccionado mostrarlo
-if st.session_state["show_json"]:
-    st.text(st.session_state["json_data"])
-
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
 
