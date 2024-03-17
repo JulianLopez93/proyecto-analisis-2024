@@ -84,7 +84,7 @@ elif option == 'Eliminar':
         st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
         st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
-operation = st.sidebar.selectbox('Arista', ['Agregar', 'Editar', 'Eliminar'])
+operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar'])
 
 with st.sidebar:
     with st.form(key='edge_form'):
@@ -102,30 +102,8 @@ with st.sidebar:
                 edge = Edge(source=source_id, target=target_id, label=edge_label)
                 st.session_state["edges"].append(edge)
 
-        elif operation == 'Editar':
-            source_id_to_edit = st.number_input('ID del nodo de origen', min_value=0, step=1)
-            target_id_to_edit = st.number_input('ID del nodo de destino', min_value=0, step=1)
-            edge_label = st.text_input('Etiqueta de la arista')
-            edge_to_edit = None
+  
 
-            for edge in st.session_state["edges"]:
-                if (edge.source, edge.to) == (source_id_to_edit, target_id_to_edit):
-                    edge_to_edit = edge
-                    break
-
-            if edge_to_edit:
-                edge_label_edit = st.text_input('Nueva etiqueta de la arista', value=edge_to_edit.label)
-                submit_edit_button = st.form_submit_button(label='Editar arista')
-
-                # Edita la arista cuando se presiona el botón
-                if submit_edit_button:
-                    # Guarda el estado actual antes de hacer cambios
-                    st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
-                    st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
-
-                    edge_to_edit.label = edge_label_edit
-            else:
-                st.warning('La arista no existe. Introduce IDs válidos para editar.')
 
         elif operation == 'Eliminar':
             source_id_to_remove = st.number_input('ID del nodo de origen', min_value=0, step=1)
@@ -145,6 +123,43 @@ with st.sidebar:
                         edges_to_remove.append(edge)
         
                 st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge not in edges_to_remove]
+               
+
+# Agrega un botón para deshacer el último cambio
+if st.sidebar.button('Deshacer acción anterior'):
+    st.session_state["nodes"] = st.session_state["previous_nodes"]
+    st.session_state["edges"] = st.session_state["previous_edges"]
+
+# Agrega un botón para guardar el grafo en formato JSON
+if st.sidebar.button('Guardar'):
+    graph_data = {
+        "graph": [
+            {
+                "data": [
+                    {
+                        "id": node.id,
+                        "label": node.label,
+                        "radius": node.size,
+                        "linkedTo": [
+                            {
+                                "nodeId": edge.to,
+                                "weight": edge.label
+                            } for edge in st.session_state["edges"] if edge.source == node.id
+                        ]
+                    } for node in st.session_state["nodes"]
+                ]
+            }
+        ]
+    }
+    st.text(json.dumps(graph_data, indent=4))
+
+# Agrega un botón para mostrar u ocultar el JSON
+if st.sidebar.button('Mostrar/Ocultar JSON'):
+    st.session_state["show_json"] = not st.session_state["show_json"]
+
+# Muestra el JSON si el usuario ha seleccionado mostrarlo
+if st.session_state["show_json"]:
+    st.text(st.session_state["json_data"])
 
 # Agrega un botón para deshacer el último cambio
 if st.sidebar.button('Deshacer acción anterior'):
