@@ -284,6 +284,28 @@ if st.sidebar.button('Determinar si es bipartito'):
     else:
         st.sidebar.write('El grafo no es bipartito.')
 
+# Agrega un botón en la barra lateral para determinar si el grafo es conexo
+if st.sidebar.button('Determinar grafo conexo'):
+    is_bipartite = nx.is_bipartite(G)
+    if is_bipartite:
+        is_connected = nx.is_connected(G)
+        if is_connected:
+            st.sidebar.write('El grafo es conexo.')
+        else:
+            st.sidebar.write('El grafo no es conexo.')
+            components = nx.connected_components(G)
+            st.sidebar.write('Las componentes conexas del grafo son:')
+            for i, component in enumerate(components, start=1):
+                st.sidebar.write(f'Componente {i}:')
+                for node_id in component:
+                    node = next((node for node in graph_data['graph'][0]['data'] if node['id'] == node_id), None)
+                    if node is not None:
+                        st.sidebar.write(f'Nodo {node_id}: {node["label"]}')
+                    else:
+                        st.sidebar.write(f'No se encontró el nodo {node_id} en el grafo.')
+    else:
+        st.sidebar.write('El grafo no es bipartito.')
+
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
 
