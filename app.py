@@ -31,9 +31,13 @@ with expander:
 # Agrega un selector de archivos en la barra lateral
     uploaded_file = st.file_uploader("Elige un archivo JSON", type="json")
 
-    if uploaded_file is not None and not st.session_state["nodes"] and not st.session_state["edges"]:
+    if uploaded_file is not None:
         # Lee el archivo JSON
         data = json.load(uploaded_file)
+
+        # Limpia las listas de nodos y aristas
+        st.session_state["nodes"] = []
+        st.session_state["edges"] = []
 
         # Añade nodos y aristas a las listas
         for item in data['graph'][0]['data']:
