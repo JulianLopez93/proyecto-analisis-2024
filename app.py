@@ -129,6 +129,12 @@ with expander:
         mime='image/png'
     )
 
+    if st.button('Cerrar'):
+        st.session_state["nodes"] = []
+        st.session_state["edges"] = []
+
+    if st.button('Salir'):
+        st.stop()
 
 # Agrega un título en la barra lateral
 st.sidebar.markdown("## Editar")
