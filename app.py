@@ -37,7 +37,7 @@ if uploaded_file is not None and not st.session_state["nodes"] and not st.sessio
         node = Node(id=item['id'], label=item['label'], size=item['radius'])
         st.session_state["nodes"].append(node)
         for linked_node in item['linkedTo']:
-            edge = Edge(source=item['id'], target=linked_node['nodeId'], label=str(linked_node['weight']))
+            edge = Edge(source=item['id'], target=linked_node['nodeId'], label=str(linked_node['weight']), color=linked_node.get('color', 'black'), linestyle=linked_node.get('linestyle', 'solid'))
             st.session_state["edges"].append(edge)
 
 # Agrega un menú desplegable en la barra lateral para seleccionar el tipo de grafo
@@ -94,7 +94,7 @@ if option == 'Personalizado':
             st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
             st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
-    operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar'])
+    operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar','Editar'])
 
     with st.sidebar:
         with st.form(key='edge_form'):
@@ -111,7 +111,7 @@ if option == 'Personalizado':
 
                     edge = Edge(source=source_id, target=target_id, label=edge_label)
                     st.session_state["edges"].append(edge)
-
+               
             elif operation == 'Eliminar':
                 source_id_to_remove = st.number_input('ID del nodo de origen', min_value=0, step=1)
                 target_id_to_remove = st.number_input('ID del nodo de destino', min_value=0, step=1)
@@ -120,17 +120,29 @@ if option == 'Personalizado':
 
                 # Elimina la arista cuando se presiona el botón
                 if submit_remove_button:
-                    # Guarda el estado actual antes de hacer cambios
-                    st.session_state["previous_nodes"] = copy.deepcopy(st.session_state["nodes"])
-                    st.session_state["previous_edges"] = copy.deepcopy(st.session_state["edges"])
-
                     edges_to_remove = []
                     for edge in st.session_state["edges"]:
-                        if edge.source == source_id_to_remove and edge.to == target_id_to_remove and edge.label == edge_label_to_remove:
+                        if ((edge.source == source_id_to_remove and edge.to == target_id_to_remove) or 
+                            (edge.source == target_id_to_remove and edge.to == source_id_to_remove)) and edge.label == edge_label_to_remove:
                             edges_to_remove.append(edge)
             
                     st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge not in edges_to_remove]
-               
+            elif operation == 'Editar':
+                source_id_to_edit = st.number_input('ID del nodo de origen', min_value=0, step=1)
+                target_id_to_edit = st.number_input('ID del nodo de destino', min_value=0, step=1)
+                edge_label_to_edit = st.text_input('Etiqueta de la arista actual')
+                new_edge_label = st.text_input('Nueva etiqueta de la arista')
+                new_edge_color = st.color_picker('Nuevo color de la arista')
+                new_edge_linestyle = st.selectbox('Nuevo estilo de línea', ['solid', 'dashed', 'dotted', 'dashdot'])
+                submit_edit_button = st.form_submit_button(label='Editar arista')
+
+                # Edita la arista cuando se presiona el botón
+                if submit_edit_button:
+                    for edge in st.session_state["edges"]:
+                        if ((edge.source == source_id_to_edit and edge.to == target_id_to_edit) or (edge.source == target_id_to_edit and edge.to == source_id_to_edit)) and edge.label == edge_label_to_edit:
+                            edge.label = new_edge_label
+                            edge.color = new_edge_color
+                            edge.linestyle = new_edge_linestyle
 elif option == 'Aleatorio':
     with st.sidebar.form(key='random_graph_form'):
         num_nodes = st.number_input('Cantidad de nodos', value=5, step=1)
@@ -184,7 +196,9 @@ graph_data = {
                     "linkedTo": [
                         {
                             "nodeId": edge.to,
-                            "weight": edge.label
+                            "weight": edge.label,
+                            "color": edge.color,
+                            "linestyle": edge.linestyle
                         } for edge in st.session_state["edges"] if edge.source == node.id
                     ]
                 } for node in st.session_state["nodes"]
@@ -249,6 +263,7 @@ st.sidebar.download_button(
     file_name='grafo.png',
     mime='image/png'
 )
+
 
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
