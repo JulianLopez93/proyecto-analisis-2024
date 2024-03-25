@@ -63,7 +63,7 @@ elif option == 'Eliminar':
         st.session_state["nodes"] = [node for node in st.session_state["nodes"] if node.id != node_id]
         st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge.source != node_id and edge.to != node_id]
 
-operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar'])
+operation = st.sidebar.selectbox('Arista', ['Agregar', 'Eliminar','Editar'])
 
 with st.sidebar:
     with st.form(key='edge_form'):
@@ -90,12 +90,35 @@ with st.sidebar:
             if submit_remove_button:
                 edges_to_remove = []
                 for edge in st.session_state["edges"]:
-                    if edge.source == source_id_to_remove and edge.to == target_id_to_remove and edge.label == edge_label_to_remove:
+                    if ((edge.source == source_id_to_remove and edge.to == target_id_to_remove) or 
+                        (edge.source == target_id_to_remove and edge.to == source_id_to_remove)) and edge.label == edge_label_to_remove:
                         edges_to_remove.append(edge)
         
                 st.session_state["edges"] = [edge for edge in st.session_state["edges"] if edge not in edges_to_remove]
                 config = Config(width=1000, height=600, directed=True)
                 agraph(st.session_state["nodes"], st.session_state["edges"], config)
+
+
+        elif operation == 'Editar':
+            source_id_to_edit = st.number_input('ID del nodo de origen', min_value=0, step=1)
+            target_id_to_edit = st.number_input('ID del nodo de destino', min_value=0, step=1)
+            edge_label_to_edit = st.text_input('Etiqueta de la arista actual')
+            new_edge_label = st.text_input('Nueva etiqueta de la arista')
+            new_edge_color = st.color_picker('Nuevo color de la arista')
+            new_edge_linestyle = st.selectbox('Nuevo estilo de línea', ['solid', 'dashed', 'dotted', 'dashdot'])
+            submit_edit_button = st.form_submit_button(label='Editar arista')
+
+            # Edita la arista cuando se presiona el botón
+            if submit_edit_button:
+                for edge in st.session_state["edges"]:
+                    if ((edge.source == source_id_to_edit and edge.to == target_id_to_edit) or (edge.source == target_id_to_edit and edge.to == source_id_to_edit)) and edge.label == edge_label_to_edit:
+                        edge.label = new_edge_label
+                        edge.color = new_edge_color
+                        edge.linestyle = new_edge_linestyle
+
+                config = Config(width=1000, height=600, directed=True)
+                agraph(st.session_state["nodes"], st.session_state["edges"], config)
+
 
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
