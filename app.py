@@ -25,23 +25,119 @@ if "show_json" not in st.session_state:
 if "json_data" not in st.session_state: 
     st.session_state["json_data"] = "" 
 
+
+expander=st.sidebar.expander("Archivo")
+with expander:
 # Agrega un selector de archivos en la barra lateral
-uploaded_file = st.sidebar.file_uploader("Elige un archivo JSON", type="json")
+    uploaded_file = st.file_uploader("Elige un archivo JSON", type="json")
 
-if uploaded_file is not None and not st.session_state["nodes"] and not st.session_state["edges"]:
-    # Lee el archivo JSON
-    data = json.load(uploaded_file)
+    if uploaded_file is not None and not st.session_state["nodes"] and not st.session_state["edges"]:
+        # Lee el archivo JSON
+        data = json.load(uploaded_file)
 
-    # Añade nodos y aristas a las listas
-    for item in data['graph'][0]['data']:
-        node = Node(id=item['id'], label=item['label'], size=item['radius'])
-        st.session_state["nodes"].append(node)
-        for linked_node in item['linkedTo']:
-            edge = Edge(source=item['id'], target=linked_node['nodeId'], label=str(linked_node['weight']), color=linked_node.get('color', 'black'), linestyle=linked_node.get('linestyle', 'solid'))
-            st.session_state["edges"].append(edge)
+        # Añade nodos y aristas a las listas
+        for item in data['graph'][0]['data']:
+            node = Node(id=item['id'], label=item['label'], size=item['radius'])
+            st.session_state["nodes"].append(node)
+            for linked_node in item['linkedTo']:
+                edge = Edge(source=item['id'], target=linked_node['nodeId'], label=str(linked_node['weight']), color=linked_node.get('color', 'black'), linestyle=linked_node.get('linestyle', 'solid'))
+                st.session_state["edges"].append(edge)
+
+
+
+    # Agrega un botón para guardar el grafo en formato JSON
+
+    graph_data = {
+        "graph": [
+            {
+                "data": [
+                    {
+                        "id": node.id,
+                        "label": node.label,
+                        "radius": node.size,
+                        "linkedTo": [
+                            {
+                                "nodeId": edge.to,
+                                "weight": edge.label,
+                                "color": edge.color
+                            } for edge in st.session_state["edges"] if edge.source == node.id
+                        ]
+                    } for node in st.session_state["nodes"]
+                ]
+            }
+        ]
+    }
+    json_data = json.dumps(graph_data, indent=4)
+    st.session_state["json_data"] = base64.b64encode(json_data.encode())
+
+    # Convertimos el grafo a un DataFrame de pandas
+    df = pd.json_normalize(graph_data['graph'], record_path=['data'])
+
+    # Creamos un grafo vacío
+    G = nx.Graph()
+
+    # Añadimos los nodos al grafo
+    for node in graph_data['graph'][0]['data']:
+        G.add_node(node['id'], label=node['label'])
+
+    # Añadimos las aristas al grafo
+    for node in graph_data['graph'][0]['data']:
+        for edge in node['linkedTo']:
+            G.add_edge(node['id'], edge['nodeId'], weight=edge['weight'])
+
+    # Creamos un objeto BytesIO
+    output = io.BytesIO()
+    # Escribimos el DataFrame en el objeto BytesIO como un archivo de Excel
+    df.to_excel(output, index=False)
+    # Movemos el cursor al inicio del objeto BytesIO
+    output.seek(0)
+
+    # Dibujamos el grafo
+    plt.figure()
+    nx.draw(G, with_labels=True)
+
+    # Creamos un archivo temporal para guardar la imagen
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
+        plt.savefig(tmpfile.name)
+        tmpfile.flush()
+
+    # Agrega un botón para descargar el grafo en formato JSON
+    st.download_button(
+        label="Descargar JSON",
+        data=base64.b64decode(st.session_state["json_data"]).decode(),
+        file_name='graph.json',
+        mime='application/json'
+    )
+
+    # Creamos el botón de descarga en la barra lateral
+    st.download_button(
+        label="Exportar como Excel",
+        data=output,
+        file_name='grafo_editado.xlsx',
+        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+
+    # Creamos el botón de descarga en la barra lateral
+    st.download_button(
+        label="Exportar como imagen",
+        data=open(tmpfile.name, "rb").read(),
+        file_name='grafo.png',
+        mime='image/png'
+    )
+
+
+# Agrega un título en la barra lateral
+st.sidebar.markdown("## Editar")
+
+# Agrega un botón para deshacer la última acción
+if st.sidebar.button('Deshacer acción anterior'):
+    st.session_state["nodes"] = st.session_state["previous_nodes"]
+    st.session_state["edges"] = st.session_state["previous_edges"]
+
+
 
 # Agrega un menú desplegable en la barra lateral para seleccionar el tipo de grafo
-option = st.sidebar.selectbox('Tipo de grafo', ['Personalizado', 'Aleatorio'])
+option = st.sidebar.selectbox('Nuevo grafo', ['Personalizado', 'Aleatorio'])
 
 if option == 'Personalizado':
     # Agrega un menú desplegable en la barra lateral
@@ -178,90 +274,7 @@ elif option == 'Aleatorio':
                             st.session_state["edges"].append(edge)
 
 
-# Agrega un botón para deshacer el último cambio
-if st.sidebar.button('Deshacer acción anterior'):
-    st.session_state["nodes"] = st.session_state["previous_nodes"]
-    st.session_state["edges"] = st.session_state["previous_edges"]
 
-# Agrega un botón para guardar el grafo en formato JSON
-
-graph_data = {
-    "graph": [
-        {
-            "data": [
-                {
-                    "id": node.id,
-                    "label": node.label,
-                    "radius": node.size,
-                    "linkedTo": [
-                        {
-                            "nodeId": edge.to,
-                            "weight": edge.label,
-                            "color": edge.color
-                        } for edge in st.session_state["edges"] if edge.source == node.id
-                    ]
-                } for node in st.session_state["nodes"]
-            ]
-        }
-    ]
-}
-json_data = json.dumps(graph_data, indent=4)
-st.session_state["json_data"] = base64.b64encode(json_data.encode())
-
-# Convertimos el grafo a un DataFrame de pandas
-df = pd.json_normalize(graph_data['graph'], record_path=['data'])
-
-# Creamos un grafo vacío
-G = nx.Graph()
-
-# Añadimos los nodos al grafo
-for node in graph_data['graph'][0]['data']:
-    G.add_node(node['id'], label=node['label'])
-
-# Añadimos las aristas al grafo
-for node in graph_data['graph'][0]['data']:
-    for edge in node['linkedTo']:
-        G.add_edge(node['id'], edge['nodeId'], weight=edge['weight'])
-
-# Creamos un objeto BytesIO
-output = io.BytesIO()
-# Escribimos el DataFrame en el objeto BytesIO como un archivo de Excel
-df.to_excel(output, index=False)
-# Movemos el cursor al inicio del objeto BytesIO
-output.seek(0)
-
-# Dibujamos el grafo
-plt.figure()
-nx.draw(G, with_labels=True)
-
-# Creamos un archivo temporal para guardar la imagen
-with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmpfile:
-    plt.savefig(tmpfile.name)
-    tmpfile.flush()
-
-# Agrega un botón para descargar el grafo en formato JSON
-st.sidebar.download_button(
-    label="Descargar JSON",
-    data=base64.b64decode(st.session_state["json_data"]).decode(),
-    file_name='graph.json',
-    mime='application/json'
-)
-
-# Creamos el botón de descarga en la barra lateral
-st.sidebar.download_button(
-    label="Exportar como Excel",
-    data=output,
-    file_name='grafo_editado.xlsx',
-    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-)
-
-# Creamos el botón de descarga en la barra lateral
-st.sidebar.download_button(
-    label="Exportar como imagen",
-    data=open(tmpfile.name, "rb").read(),
-    file_name='grafo.png',
-    mime='image/png'
-)
 
 # Agrega un botón en la barra lateral para determinar si el grafo es bipartito
 if st.sidebar.button('Determinar si es bipartito'):
