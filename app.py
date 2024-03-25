@@ -197,8 +197,7 @@ graph_data = {
                         {
                             "nodeId": edge.to,
                             "weight": edge.label,
-                            "color": edge.color,
-                            "linestyle": edge.linestyle
+                            "color": edge.color
                         } for edge in st.session_state["edges"] if edge.source == node.id
                     ]
                 } for node in st.session_state["nodes"]
@@ -264,6 +263,13 @@ st.sidebar.download_button(
     mime='image/png'
 )
 
+# Agrega un botón en la barra lateral para determinar si el grafo es bipartito
+if st.sidebar.button('Determinar si es bipartito'):
+    is_bipartite = nx.is_bipartite(G)
+    if is_bipartite:
+        st.sidebar.write('El grafo es bipartito.')
+    else:
+        st.sidebar.write('El grafo no es bipartito.')
 
 # Agrega un menú desplegable en la barra lateral para seleccionar la vista
 view_option = st.sidebar.selectbox('Ventana', ['Grafo', 'Matriz'])
